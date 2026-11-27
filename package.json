@@ -1,0 +1,9 @@
+{
+  "name": "codex-openai-compatible-endpoint",
+  "version": "0.1.0",
+  "description": "OpenAI-compatible API endpoint backed by your Codex (ChatGPT) subscription, with a web UI for API keys.",
+  "main": "src/server.js",
+  "scripts": { "start": "node src/server.js", "test": "node --test test/" },
+  "license": "MIT",
+  "engines": { "node": ">=20" }
+}

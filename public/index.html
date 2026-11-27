@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Codex Endpoint Keys</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1b1f24;--mut:#6a737d;--bd:#d8dee4;--ac:#2557d6;--bad:#c62828}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1318;--card:#171c23;--fg:#e6e9ed;--mut:#8b95a1;--bd:#2a323c;--ac:#6b9bff;--bad:#ff6b6b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px}h1{font-size:20px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:16px}
+input,button{font:inherit;padding:8px 12px;border-radius:6px;border:1px solid var(--bd);background:var(--card);color:var(--fg)}
+button{cursor:pointer}button.p{background:var(--ac);border-color:var(--ac);color:#fff}button.d{color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row input{flex:1;min-width:160px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--bd);font-size:14px}
+th{color:var(--mut);font-weight:600}code{font-family:ui-monospace,monospace;word-break:break-all}
+.new{border-color:var(--ac)}.mut{color:var(--mut)}.tag{color:var(--bad)}.top{display:flex;justify-content:space-between;align-items:center}
+.scroll{overflow-x:auto}
+</style></head><body><main>
+<div class="top"><h1>Codex Endpoint · API keys</h1><button id="out" hidden>Log out</button></div>
+<div id="login" class="card" hidden><form class="row" id="lf"><input type="password" id="pw" placeholder="Admin password" autofocus><button class="p">Log in</button></form><p id="le" class="tag"></p></div>
+<div id="app" hidden>
+  <div class="card"><form class="row" id="cf"><input id="nm" placeholder="Key name (e.g. my-laptop)" maxlength="80"><button class="p">Create key</button></form></div>
+  <div id="newkey" class="card new" hidden><b>Copy this key now — it won't be shown again.</b><p><code id="nk"></code></p><button id="cp">Copy</button></div>
+  <div class="card scroll"><table><thead><tr><th>Name</th><th>Key</th><th>Created</th><th>Last used</th><th>Requests</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+  <p id="empty" class="mut" hidden>No keys yet.</p></div>
+  <div class="card mut">Use it: <code>base_url = <span id="bu"></span>/v1</code>, header <code>Authorization: Bearer &lt;key&gt;</code></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const api=async(p,o={})=>{const r=await fetch(p,{headers:{'content-type':'application/json'},...o});const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||r.status),{status:r.status});return j};
+const fmt=t=>t?new Date(t).toLocaleString():'never';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function load(){
+  let s;try{s=await api('/admin/api/session')}catch{s={}}
+  $('login').hidden=!!s.loggedIn;$('app').hidden=!s.loggedIn;$('out').hidden=!s.loggedIn;
+  if(!s.loggedIn)return;$('bu').textContent=location.origin;
+  const ks=await api('/admin/api/keys');$('empty').hidden=ks.length>0;
+  $('rows').innerHTML=ks.map(k=>`<tr><td>${esc(k.name)}${k.revoked?' <span class="tag">revoked</span>':''}</td><td><code>${esc(k.prefix)}</code></td><td>${fmt(k.created)}</td><td>${fmt(k.lastUsed)}</td><td>${k.requests}</td><td>${k.revoked?'':`<button data-r="${k.id}">Revoke</button> `}<button class="d" data-d="${k.id}">Delete</button></td></tr>`).join('');
+}
+$('lf').onsubmit=async e=>{e.preventDefault();try{await api('/admin/login',{method:'POST',body:JSON.stringify({password:$('pw').value})});$('pw').value='';$('le').textContent='';load()}catch(x){$('le').textContent=x.message}};
+$('out').onclick=async()=>{await api('/admin/logout',{method:'POST'});load()};
+$('cf').onsubmit=async e=>{e.preventDefault();const k=await api('/admin/api/keys',{method:'POST',body:JSON.stringify({name:$('nm').value})});$('nm').value='';$('nk').textContent=k.key;$('newkey').hidden=false;load()};
+$('cp').onclick=()=>navigator.clipboard.writeText($('nk').textContent).then(()=>$('cp').textContent='Copied');
+$('rows').onclick=async e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.r&&confirm('Revoke this key?'))await api('/admin/api/keys/'+b.dataset.r+'/revoke',{method:'POST'});
+  if(b.dataset.d&&confirm('Delete this key permanently?'))await api('/admin/api/keys/'+b.dataset.d,{method:'DELETE'});load()};
+load();
+</script></main></body></html>
