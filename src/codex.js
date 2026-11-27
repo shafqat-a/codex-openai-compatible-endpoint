@@ -7,18 +7,6 @@ const path = require('path');
 const CODEX_BIN = process.env.CODEX_BIN || 'codex';
 const TIMEOUT_MS = Number(process.env.CODEX_TIMEOUT_MS || 300000);
 
-// Flatten OpenAI chat messages into one prompt for `codex exec`.
-function messagesToPrompt(messages) {
-  const text = (c) => typeof c === 'string' ? c
-    : Array.isArray(c) ? c.map((p) => p.text || p.input_text || p.output_text || '').join('') : '';
-  const lines = [
-    'You are acting as a plain chat completion API. Do not run commands or edit files; answer directly.',
-    'Below is the conversation. Reply only with the next assistant message.', '',
-  ];
-  for (const m of messages) lines.push(`[${m.role}]\n${text(m.content)}\n`);
-  return lines.join('\n');
-}
-
 function listModels() {
   const out = new Set();
   try {
@@ -33,12 +21,13 @@ function listModels() {
 }
 
 // Runs one turn. Resolves { text, usage }.
-function runCodex({ prompt, model, effort }) {
+function runCodex({ prompt, model, effort, schema }) {
   return new Promise((resolve, reject) => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-ep-'));
     const args = ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '--sandbox', 'read-only', '-C', cwd];
     if (model) args.push('-m', model);
     if (effort) args.push('-c', `model_reasoning_effort="${effort}"`);
+    if (schema) { const sf = path.join(cwd, '.schema.json'); fs.writeFileSync(sf, JSON.stringify(schema)); args.push('--output-schema', sf); }
     args.push('-');
     const p = spawn(CODEX_BIN, args, { stdio: ['pipe', 'pipe', 'pipe'] });
     let buf = '', text = '', usage = null, err = '';
@@ -77,4 +66,4 @@ async function limited(fn) {
   try { return await fn(); } finally { active--; waiting.shift()?.(); }
 }
 
-module.exports = { messagesToPrompt, listModels, runCodex: (o) => limited(() => runCodex(o)) };
+module.exports = { listModels, runCodex: (o) => limited(() => runCodex(o)) };

@@ -23,8 +23,8 @@ curl http://127.0.0.1:8787/v1/chat/completions \
 | Endpoint | Notes |
 |---|---|
 | `GET /v1/models` | Models from your local Codex model cache |
-| `POST /v1/chat/completions` | `stream: true` supported (the reply is sent as one chunk once Codex finishes) |
-| `POST /v1/responses` | Basic text input/output |
+| `POST /v1/chat/completions` | Text and function tools; `stream: true` supported (the reply is sent as one chunk once Codex finishes) |
+| `POST /v1/responses` | Text and function tools; `stream: true` supported (SSE events) |
 | `/admin` | Key management UI |
 
 ## Settings (environment variables)
@@ -35,7 +35,8 @@ curl http://127.0.0.1:8787/v1/chat/completions \
 
 - Each request runs `codex exec --ephemeral --sandbox read-only` in an empty temp folder, so the model answers as plain chat and cannot touch your files.
 - API keys are stored as SHA-256 hashes in `data/keys.json`; the full key is shown once.
-- Not supported: tool/function calling, images, true token streaming, `temperature` and other sampling parameters. Each request carries Codex's own system prompt, so token counts are higher than for the plain API.
+- Tool calling is emulated: the tool definitions go into the prompt and Codex must reply in a fixed JSON shape (`--output-schema`), which becomes `tool_calls` / `function_call` items. A malformed reply is retried once. Only `function` tools are used; built-in tools such as web search are ignored. `tool_choice` supports `none`, `required` and a named function.
+- Not supported: images, true token streaming, `temperature` and other sampling parameters. Each request carries Codex's own system prompt, so token counts are higher than for the plain API.
 - Usage counts against your Codex subscription limits. Check that this use is allowed by OpenAI's terms for your plan.
 - It binds to localhost. Put HTTPS and a reverse proxy in front of it before exposing it to a network.
 
