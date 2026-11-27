@@ -165,5 +165,12 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-if (require.main === module) server.listen(PORT, HOST, () => console.log(`codex endpoint on http://${HOST}:${PORT}  (UI: /admin)`));
+// HOST may be a comma-separated list (e.g. "127.0.0.1,10.89.1.1") to listen on several addresses.
+if (require.main === module) {
+  const hosts = HOST.split(',').map((h) => h.trim()).filter(Boolean);
+  hosts.forEach((h, i) => {
+    const s = i === 0 ? server : http.createServer(server.listeners('request')[0]);
+    s.listen(PORT, h, () => console.log(`codex endpoint on http://${h}:${PORT}  (UI: /admin)`));
+  });
+}
 module.exports = { server, store };

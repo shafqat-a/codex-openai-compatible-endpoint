@@ -29,7 +29,7 @@ curl http://127.0.0.1:8787/v1/chat/completions \
 
 ## Settings (environment variables)
 
-`PORT` (8787), `HOST` (127.0.0.1), `DATA_DIR` (./data), `ADMIN_PASSWORD`, `MAX_CONCURRENCY` (4), `CODEX_TIMEOUT_MS` (300000), `CODEX_BIN` (codex).
+`PORT` (8787), `HOST` (127.0.0.1; comma-separated list allowed), `DATA_DIR` (./data), `ADMIN_PASSWORD`, `MAX_CONCURRENCY` (4), `CODEX_TIMEOUT_MS` (300000), `CODEX_BIN` (codex).
 
 ## How it works and limits
 
@@ -38,6 +38,15 @@ curl http://127.0.0.1:8787/v1/chat/completions \
 - Not supported: tool/function calling, images, true token streaming, `temperature` and other sampling parameters. Each request carries Codex's own system prompt, so token counts are higher than for the plain API.
 - Usage counts against your Codex subscription limits. Check that this use is allowed by OpenAI's terms for your plan.
 - It binds to localhost. Put HTTPS and a reverse proxy in front of it before exposing it to a network.
+
+## Run as a service
+
+`deploy/codex-endpoint.service` is a systemd unit (edit the user and paths first):
+
+```sh
+sudo cp deploy/codex-endpoint.service /etc/systemd/system/
+sudo systemctl enable --now codex-endpoint
+```
 
 ## Test
 

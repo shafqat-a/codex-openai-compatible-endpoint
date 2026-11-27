@@ -1,0 +1,16 @@
+[Unit]
+Description=Codex OpenAI-compatible endpoint
+After=network-online.target
+
+[Service]
+User=shafqat
+WorkingDirectory=/home/shafqat/git/codex-openai-compatible-endpoint
+Environment=PATH=/home/shafqat/.local/bin:/home/shafqat/.local/node/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOST=127.0.0.1,10.89.1.1
+Environment=PORT=8787
+ExecStart=/home/shafqat/.local/node/bin/node src/server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
